@@ -34,18 +34,19 @@ sex_column = 'f.31.0.0'
 col_names = gmv_columns + fa_columns + [id_column, age_column, sex_column]
 
 print "{0} Loading data".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
 # load dataframe with MHQ data
 data = pd.read_csv("/mnt/lustre/groups/ukbiobank/KCL_Data/Phenotypes/Full_Dataset_August_2017/Final_full_pheno_061117.txt",
                    sep='\t', dtype=np.float64, usecols=col_names)
 print "{0} Loaded data, shape = {1}".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), data.shape)
 
 # load risk data
-risk_data = pd.read_csv('/mnt/lustre/groups/ukbiobank/Edinburgh_Data/usr/toby/adversity/imaging_adversity_genetic_risk_df.txt',
+risk_data = pd.read_csv('/mnt/lustre/groups/ukbiobank/Edinburgh_Data/usr/toby/adversity/imaging_adversity_risk_df.txt',
                    dtype=np.float64, usecols=[id_column] + risk_columns)
 print "{0} Loaded adversity risk scores, shape = {1}".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), risk_data.shape)
 
-prs_data = pd.read_csv("/mnt/lustre/groups/ukbiobank/Edinburgh_Data/usr/toby/prsice_test.best", sep='\t',
-                       usecols=['IID', 'PRS'])
+prs_data = pd.read_csv("/mnt/lustre/groups/ukbiobank/Edinburgh_Data/usr/toby/prsice_test_klp.all.score", sep=' +',
+                       usecols=['IID', '0.001000'])
 prs_data.columns = ['f.eid', 'PRS']
 print "{0} Loaded PRS scores, shape = {1}".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), prs_data.shape)
 
@@ -86,6 +87,8 @@ plt.savefig("/mnt/lustre/groups/ukbiobank/Edinburgh_Data/usr/toby/adversity/GMV_
 plt.clf()
 plt.cla()
 plt.close()
+
+# Plot FA distributions
 
 plt.figure(figsize=(22, 7))
 sns.lvplot(data=fa_long, x='tract', y='fa', scale="linear")

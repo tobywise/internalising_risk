@@ -12,6 +12,13 @@ import pymc3 as pm
 # LOAD DATA
 gmv_data = pd.read_csv("/mnt/lustre/groups/ukbiobank/Edinburgh_Data/usr/toby/adversity/GMV_dataframe.txt")
 
+# STANDARDISE THINGS
+def standardise(x):
+    return (x - x.mean()) / x.std()
+
+for i in ['early_life_risk', 'adult_risk', 'PRS', 'volume']:
+    gmv_data[i] = standardise(gmv_data[i])
+
 # CONSTRUCT MODEL
 gmv_model = bambi.Model(gmv_data, dropna=True)
 
@@ -31,31 +38,30 @@ gmv_model.fit('volume ~ 1 + early_life_risk + adult_risk + early_life_risk*adult
 
 print "{0} Constructed GMV model, starting fit...".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
-gmv_results = gmv_model.fit(method='advi', n=50000)
+# Fit the model using ADVI
+gmv_results = gmv_model.fit(method='advi', n=20000)
 
+print "{0} Finished model fitting".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
+# Save the result object
 pickle.dump(gmv_results, open( '/mnt/lustre/groups/ukbiobank/Edinburgh_Data/usr/toby/adversity/gmv_model_results_{0}'.format(
     datetime.datetime.now().strftime("%Y_%m_%d")), "wb" ))
 
+# Sample from the approximate posteriors
 trace = pm.sample_approx(gmv_results, draws=1000)
 
+# Save these samples
+pickle.dump(gmv_results, open( '/mnt/lustre/groups/ukbiobank/Edinburgh_Data/usr/toby/adversity/gmv_model_results_trace{0}'.format(
+    datetime.datetime.now().strftime("%Y_%m_%d")), "wb" ))
+
+# Plot the results
 pm.traceplot(trace)
-plt.savefig('/mnt/lustre/groups/ukbiobank/Edinburgh_Data/usr/toby/adversity/traceplot_test_{0}.pdf'.format(
+plt.savefig('/mnt/lustre/groups/ukbiobank/Edinburgh_Data/usr/toby/adversity/gmv_traceplot_{0}.pdf'.format(
     datetime.datetime.now().strftime("%Y_%m_%d")))
 
-# print "{0} GMV model fit".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-# print gmv_results[:].summary()
-# print gmv_results[:].summary(ranefs=True)
-#
-# gmv_results[:].plot()
-# plt.savefig('/mnt/lustre/groups/ukbiobank/Edinburgh_Data/usr/toby/adversity/gmv_model_results_{0}.pdf'.format(
-#     datetime.datetime.now().strftime("%Y_%m_%d")))
-# gmv_results[:].plot(transformed=True)
-# plt.savefig('/mnt/lustre/groups/ukbiobank/Edinburgh_Data/usr/toby/adversity/gmv_model_results_{0}.pdf'.format(
-#     datetime.datetime.now().strftime("%Y_%m_%d")))
-#
-# print "{0} Saved fit result figure".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-#
-# pickle.dump(gmv_results, open( '/mnt/lustre/groups/ukbiobank/Edinburgh_Data/usr/toby/adversity/gmv_model_results_{0}'.format(
-#     datetime.datetime.now().strftime("%Y_%m_%d")), "wb" ))
-#
-# print "{0} Saved bambi model object".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+# Get a summary of the results and save this
+summary = pm.df_summary(trace)
+summary.to_csv('/mnt/lustre/groups/ukbiobank/Edinburgh_Data/usr/toby/adversity/gmv_results_summary_{0}.csv'.format(
+    datetime.datetime.now().strftime("%Y_%m_%d")))
+
+print "Done"
